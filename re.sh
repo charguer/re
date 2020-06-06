@@ -11,7 +11,7 @@
 # This command displays a list of folder whose contents was recently
 # modified, ordered with the most recent first. The user provides a digit
 # to make its selection. The 'enter' key validates the first choice.
-# The effect is to 'cd' to the selected folder.
+# The effect is to 'cd' to the selected folder (technically, 'pushd').
 #
 # Suggested alias (assuming the script is located in the home folder):
 #    alias re='. ~/re.sh 8'
@@ -27,6 +27,10 @@
 #  - remote folders could be excluded by default, there are not at the moment
 #    (see example below
 
+# TODO:
+# - remove the trailing '/' from the argument
+# - add support for 're' on files (not folders), with 'open' of the file
+
 # Parameters
 
 MAX_NB_RESULTS=$1
@@ -41,12 +45,16 @@ EXCLUDE="-not -path . -regex '.*/\..*' -prune -o "
 
 # Define the regexp to filter on folder names
 SELECT_REGEXP=""
-if [ ! -z "$SELECT" ]; then
+if [ "$SELECT" = "." ]; then
+  SELECT_TYPE="-type d"
+elif [ ! -z "$SELECT" ]; then
   SELECT_REGEXP="-regex '.*$SELECT[^/]*'"
 fi
 
+SELECT_TYPE="-type d"
+
 # Find directories, optionnally filtered by name, ordered by date descendent, with a cap on the nb of results
-QUERY="find . -maxdepth $MAX_DEPTH $EXCLUDE -type d $SELECT_REGEXP -print0 | xargs -0 -r stat --format '%Y:%n' | sort -nr | cut -d: -f2- | head -n +$MAX_NB_RESULTS"
+QUERY="find . -maxdepth $MAX_DEPTH $EXCLUDE $SELECT_TYPE $SELECT_REGEXP -print0 | xargs -0 -r stat --format '%Y:%n' | sort -nr | cut -d: -f2- | head -n +$MAX_NB_RESULTS"
 
 SRESULTS=$(eval $QUERY)
 mapfile -t RESULTS < <(echo "$SRESULTS")
